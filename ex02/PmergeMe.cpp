@@ -68,7 +68,7 @@ static void binaryInsert(std::vector<Number> *final, const Number& n){
 	}
 }
 
-PmergeMe::PmergeMe(){}
+PmergeMe::PmergeMe(): jacobsthalIndex(1){}
 
 PmergeMe::~PmergeMe(){}
 
@@ -142,13 +142,32 @@ bool PmergeMe::vPart(char **argv){
 		}
 	}
 
-// Trouver un moyen de supprimer les elements qui ont ete push dans final (binary search? qui return -1 si le nombre n'est pas trouve??)
-
-	vSequence.erase(vSequence.begin()+i);
+	// Supprimer les elements qui ont ete push dans final 
+	for(std::vector<Number>::iterator it = vSequence.begin(); it < vSequence.end(); ++it){
+		if (it->value > it->pair)
+			vSequence.erase(it);
+	}
+	// On commence par insérer le Number qui est lié au 1er Number de final
+	for(std::vector<Number>::iterator it = vSequence.begin(); it < vSequence.end(); ++it){
+		if (it->value == final.front().pair)
+		{
+			final.insert(final.begin(), *it);
+			vSequence.erase(it);
+			break;
+		}
+	}
 	std::cout << "After: ";
 	displayContent(vSequence);
 	displayContent(final);
-
+	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
+	jacobsthalIndex++;
+	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
+	jacobsthalIndex++;
+	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
+	jacobsthalIndex++;
+	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
+	jacobsthalIndex++;
+	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
 
 	return true;
 }
@@ -165,7 +184,6 @@ bool PmergeMe::isSorted(std::vector<Number>& vec){
 template<typename T>
 void PmergeMe::displayContent(T& t){
 	for(typename T::iterator it = t.begin(); it != t.end(); ++it){
-		// std::cout << "(" << it->value << " " << it->pair << ") ";
 		std::cout << it->value << " ";
 	}
 	std::cout << std::endl;
@@ -198,6 +216,17 @@ void PmergeMe::sortPairsV(){
 			vSequence[i+1].pair = tmpP;
 		}
 	}
+}
+
+int PmergeMe::nextJacobsthal(int x1, int x2, unsigned int index){
+
+	if (index == jacobsthalIndex)
+		return x2; 
+	index++;
+	int tmp = x2 + (2 * x1);
+	x1 = x2;
+	x2 = tmp;
+	return nextJacobsthal(x1, x2, index);
 }
 
 
