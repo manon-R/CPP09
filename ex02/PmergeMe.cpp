@@ -1,8 +1,18 @@
 #include "PmergeMe.hpp"
 
-
 static std::vector<std::string> ft_split(const std::string& str, char delimiter) {
 	std::vector<std::string> tokens;
+	std::stringstream ss(str);
+	std::string token;
+
+	while (std::getline(ss, token, delimiter)) {
+		tokens.push_back(token);
+	}
+	return tokens;
+}
+
+static std::list<std::string> ft_split_list(const std::string& str, char delimiter) {
+	std::list<std::string> tokens;
 	std::stringstream ss(str);
 	std::string token;
 
@@ -43,10 +53,33 @@ static bool isValidArg(char **argv){
 	return true;
 }
 
+static int rightIndex(std::vector<Number> *final, int value)
+{
+	for (unsigned long i = 0; i < final->size(); i++)
+	{
+		if ((*final)[i].value == value)
+			return i;
+	}
+
+	return (final->size() - 1) >= 0 ? final->size() - 1 : 0;
+}
+
+static std::list<Number>::iterator rightIndexL(std::list<Number> *final, int value)
+{
+	for (std::list<Number>::iterator it = final->begin(); it != final->end(); ++it)
+	{
+		if (it->value == value)
+			return it;
+	}
+	std::list<Number>::iterator result = final->end();
+	if (result != final->begin())
+		result--;
+	return result;
+}
 
 static void binaryInsert(std::vector<Number> *final, const Number& n){
 	int left = 0;
-	int right = final->size() - 1;
+	int right =  rightIndex(final, n.pair);
 	if (final->size() == 1)
 	{
 		if ((*final)[0].value > n.value)
@@ -65,6 +98,41 @@ static void binaryInsert(std::vector<Number> *final, const Number& n){
 			}
 		}
 		final->insert(final->begin() + left, n);
+	}
+}
+
+static void binaryInsertL(std::list<Number> *final, const Number& n){
+	std::list<Number>::iterator left = final->begin();
+	std::list<Number>::iterator right = rightIndexL(final, n.pair);
+	std::list<Number>::iterator mid;
+	std::list<Number>::iterator tmp;
+	if (final->size() == 1)
+	{
+		if ((*final).front().value > n.value)
+			final->insert(final->begin(), n);
+		else
+			final->push_back(n);
+	}
+	else
+	{
+		while (left->value != right->value && left->pair != right->pair) {
+			mid = left;
+			std::advance(mid, std::distance(left, right) / 2);
+			tmp = mid;
+			if (mid->value < n.value) {
+				
+				std::advance(tmp, 1);
+				left = tmp;
+			} else {
+				std::advance(tmp, -1);
+				right = tmp;
+			}
+		}
+		std::list<Number>::iterator index = final->begin();
+		std::advance(index, std::distance(final->begin(), left));
+		if (n.value > index->value)
+			std::advance(index, 1);
+		final->insert(index, n);
 	}
 }
 
@@ -96,15 +164,13 @@ void PmergeMe::fjSort(char **argv){
 		std::cout << "Error: This sequence is already sorted" << std::endl;
 		return ;
 	}
-	// if (!lPart(argv))
-	// 	return ;
-
-	//Chaque algo doit recuperer les values dans son container respectif et avant de commencer verifier si la taille de la sequence est > 1 et 
-	// si la sequence n'est pas deja triee 
+	jacobsthalIndex = 1;
+	lPart(argv);
 }
 
 bool PmergeMe::vPart(char **argv){
 	//Demarrer le chrono ici
+	clock_t debut = clock();
 	std::vector<std::string> test;
 	std::vector<Number> final;
 	Number n;
@@ -120,17 +186,17 @@ bool PmergeMe::vPart(char **argv){
 		}
 		i++;
 	}
-	if (isSorted(vSequence))
+	if (isSortedV(vSequence))
 		return false;
-	completePairsV();
-
 	vCopy = vSequence;
-	std::cout << "Before: ";
-	displayContent(vCopy);
-
+	completePairsV();
 	sortPairsV();
-	// if (isSorted(vSequence)) // Check si la sequence est deja triee
-	// 	return finalDisplay();
+	if (isSortedV(vSequence)) // Check si la sequence est deja triee
+	{
+		clock_t fin = clock();
+		finalDisplay(&vSequence, debut, fin);
+		return true;
+	}
 
 	//Push les max dans un vector en commencant par le dernier element du vecteur
 	n = vSequence[vSequence.size()-1];
@@ -142,12 +208,13 @@ bool PmergeMe::vPart(char **argv){
 		}
 	}
 
-	// Supprimer les elements qui ont ete push dans final 
+	// // Supprimer les elements qui ont ete push dans final 
 	for(std::vector<Number>::iterator it = vSequence.begin(); it < vSequence.end(); ++it){
 		if (it->value > it->pair)
 			vSequence.erase(it);
 	}
-	// On commence par insérer le Number qui est lié au 1er Number de final
+
+	// // On commence par insérer le Number qui est lié au 1er Number de final
 	for(std::vector<Number>::iterator it = vSequence.begin(); it < vSequence.end(); ++it){
 		if (it->value == final.front().pair)
 		{
@@ -156,26 +223,39 @@ bool PmergeMe::vPart(char **argv){
 			break;
 		}
 	}
-	std::cout << "After: ";
-	displayContent(vSequence);
-	displayContent(final);
-	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
-	jacobsthalIndex++;
-	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
-	jacobsthalIndex++;
-	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
-	jacobsthalIndex++;
-	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
-	jacobsthalIndex++;
-	std::cout << "Next Jacobsthal: " << nextJacobsthal(0, 2, 0) << std::endl;
-
+	// Puis on insert le reste des Number dans final
+	while (!vSequence.empty())
+	{
+		unsigned long subsize = nextJacobsthal(0, 2, 0);
+		if (subsize > vSequence.size())
+			subsize = vSequence.size();
+		jacobsthalIndex++;
+		for (int i = subsize - 1; i >= 0; i--)
+		{
+			binaryInsert(&final, vSequence[i]);
+			vSequence.erase(vSequence.begin() + i);
+		}
+	}
+	clock_t fin = clock();
+	finalDisplay(&final, debut, fin);
 	return true;
 }
 
 
-bool PmergeMe::isSorted(std::vector<Number>& vec){
+bool PmergeMe::isSortedV(std::vector<Number>& vec){
 	for(unsigned long i = 0; i < vec.size() - 1; i++){
 		if (vec[i].value > vec[i + 1].value)
+			return false;
+	}
+	return true;
+}
+
+bool PmergeMe::isSortedL(std::list<Number>& li){
+	std::list<Number>::iterator next_it;
+	for(std::list<Number>::iterator it = li.begin(); it != --li.end(); ++it){
+		next_it = it;
+		++next_it;
+		if (it->value > next_it->value)
 			return false;
 	}
 	return true;
@@ -201,6 +281,29 @@ void PmergeMe::completePairsV(){
 	}
 }
 
+void PmergeMe::completePairsL(){
+	unsigned long i = 0;
+	std::list<Number>::iterator next_it;
+	for (std::list<Number>::iterator it = lSequence.begin(); it != lSequence.end(); ++it)
+	{
+		next_it = it;
+		if (i % 2 == 0 && (i + 1) < lSequence.size())
+		{
+			++next_it;
+			it->pair = next_it->value;
+		}
+		else if ((i + 1) < lSequence.size() || lSequence.size() % 2 == 0)
+		{
+			--next_it;
+			it->pair = next_it->value;
+		}
+		else
+			it->pair = -1;
+		i++;
+	}
+}
+
+
 void PmergeMe::sortPairsV(){
 	int tmpV;
 	int tmpP;
@@ -218,6 +321,30 @@ void PmergeMe::sortPairsV(){
 	}
 }
 
+void PmergeMe::sortPairsL(){
+	int tmpV;
+	int tmpP;
+	std::list<Number>::iterator next_it;
+	std::list<Number>::iterator it = lSequence.begin();
+	while (it != lSequence.end())
+	{
+		tmpV = it->value;
+		tmpP = it->pair;
+		next_it = it;
+		++next_it;
+		if (next_it == lSequence.end())
+			break;
+		if (tmpV > next_it->value)
+		{
+			it->value = next_it->value;
+			it->pair = next_it->pair;
+			next_it->value = tmpV;
+			next_it->pair = tmpP;
+		}
+		std::advance(it, 2);
+	}
+}
+
 int PmergeMe::nextJacobsthal(int x1, int x2, unsigned int index){
 
 	if (index == jacobsthalIndex)
@@ -229,39 +356,108 @@ int PmergeMe::nextJacobsthal(int x1, int x2, unsigned int index){
 	return nextJacobsthal(x1, x2, index);
 }
 
-
-// bool PmergeMe::lPart(char **argv){
-// 	//Demarrer le chrono ici
-// 	return true;
-// }
-
-
-
-
-
+void PmergeMe::finalDisplay(std::vector<Number> *sequence, clock_t debut, clock_t fin){
+	std::cout << "Before: ";
+	displayContent(vCopy);
+	double timelapse = (double)(fin - debut) * 1000.0 / (double) CLOCKS_PER_SEC;
+	std::cout << "After: ";
+	displayContent(*sequence);
+	std::cout << "Time to process a range of " << sequence->size() <<" elements with std::vector : " << timelapse  << " milliseconds" << std::endl;
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
-/*// Fonction pour générer les nombres de Jacobsthal jusqu'à un certain seuil
-std::vector<int> generateJacobsthal(int limit) {
-	std::vector<int> jacobsthal;
-	jacobsthal.push_back(0);
-	jacobsthal.push_back(2);
-
-	while (jacobsthal.back() <= limit) {
-		int next = jacobsthal.size() > 1 ? jacobsthal[jacobsthal.size() - 1] + 2 * jacobsthal[jacobsthal.size() - 2] : 0;
-		jacobsthal.push_back(next);
+bool PmergeMe::lPart(char **argv){
+	//Demarrer le chrono ici
+	clock_t debut = clock();
+	std::list<std::string> test;
+	std::list<Number> final;
+	Number n;
+	int i = 1;
+	while (argv[i])
+	{
+		std::string tmp = argv[i];
+		test = ft_split_list(tmp, ' ');
+		for(std::list<std::string>::iterator it = test.begin(); it != test.end(); ++it){
+			n.value = atoi(it->c_str());
+			lSequence.push_back(n);
+		}
+		i++;
+	}
+	completePairsL();
+	sortPairsL();
+	if (isSortedL(lSequence)) // Check si la sequence est deja triee
+	{
+		clock_t fin = clock();
+		double timelapse = (double)(fin - debut) * 1000.0 / (double) CLOCKS_PER_SEC;
+		std::cout << "Time to process a range of " << lSequence.size() <<" elements with std::vector : " << timelapse  << " milliseconds" << std::endl;
+		return true;
 	}
 
-	return jacobsthal;
-}*/
+	// //Push les max dans un vector en commencant par le dernier element du vecteur
+	n = lSequence.back();
+	final.push_back(n);
+	lSequence.pop_back();
+	
+	std::list<Number>::iterator next_it;
+	std::list<Number>::iterator it = lSequence.begin();
+	std::advance(it, 1);
+	int j = 1;
+	while (it != lSequence.end())
+	{
+		if (j % 2 != 0)
+			binaryInsertL(&final, *it);
+		next_it = it;
+		++next_it;
+		if (next_it == lSequence.end())
+			break;
+		std::advance(it, 2);
+		j+= 2;
+	}
+
+	// Supprimer les elements qui ont ete push dans final 
+	std::list<Number>::iterator itl = lSequence.begin();
+	while (itl != lSequence.end()) 
+	{
+		if (itl->value > itl->pair)
+			itl = lSequence.erase(itl);
+		else
+			++itl;
+	}
+
+	// // // On commence par insérer le Number qui est lié au 1er Number de final
+	for(std::list<Number>::iterator it = lSequence.begin(); it != lSequence.end(); ++it){
+		if (it->value == final.front().pair)
+		{
+			final.insert(final.begin(), *it);
+			lSequence.erase(it);
+			break;
+		}
+	}
+
+	std::list<Number>::iterator subIt = lSequence.begin();
+	while (!lSequence.empty())
+	{
+		unsigned long subsize = nextJacobsthal(0, 2, 0);
+		if (subsize > lSequence.size())
+			subsize = lSequence.size();
+		jacobsthalIndex++;
+		std::advance(subIt, (subsize - 1));
+		for (int i = subsize; i > 0; i--)
+		{
+			binaryInsertL(&final, *subIt);
+			if (subIt == lSequence.begin())
+				break;
+			subIt--;
+		}
+		subIt = lSequence.begin();
+		for (unsigned long i = 0; i < subsize; i++)
+		{
+			lSequence.erase(subIt);
+			subIt = lSequence.begin();
+		}
+	}
+	clock_t fin = clock();
+	double timelapse = (double)(fin - debut) * 1000.0 / (double) CLOCKS_PER_SEC;
+	std::cout << "Time to process a range of " << final.size() <<" elements with std::list : " << timelapse  << " milliseconds" << std::endl;
+	return true;
+}
