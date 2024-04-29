@@ -37,10 +37,14 @@ private:
 	std::list<Number>lSequence;
 	unsigned int jacobsthalIndex;
 
-	bool isSorted(std::vector<Number>& vec);
+	bool isSortedV(std::vector<Number>& vec);
+	bool isSortedL(std::list<Number>& li);
 	void completePairsV();
+	void completePairsL();
 	void sortPairsV();
+	void sortPairsL();
 	int nextJacobsthal(int x1, int x2, unsigned int index);
+	void finalDisplay(std::vector<Number> *sequence, clock_t debut, clock_t fin);
 
 	template<typename T>
 	void displayContent(T& t);

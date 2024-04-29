@@ -60,8 +60,8 @@ static int rightIndex(std::vector<Number> *final, int value)
 		if ((*final)[i].value == value)
 			return i;
 	}
-
-	return (final->size() - 1) >= 0 ? final->size() - 1 : 0;
+	int result = final->size() - 1;
+	return result >= 0 ? result : 0;
 }
 
 static std::list<Number>::iterator rightIndexL(std::list<Number> *final, int value)
@@ -73,7 +73,7 @@ static std::list<Number>::iterator rightIndexL(std::list<Number> *final, int val
 	}
 	std::list<Number>::iterator result = final->end();
 	if (result != final->begin())
-		result--;
+		--result;
 	return result;
 }
 
@@ -103,9 +103,15 @@ static void binaryInsert(std::vector<Number> *final, const Number& n){
 
 static void binaryInsertL(std::list<Number> *final, const Number& n){
 	std::list<Number>::iterator left = final->begin();
+	// std::cout << "value = " << n.value << " and final content = ";
+	// for(std::list<Number>::iterator it = final->begin(); it != final->end(); ++it){
+	// 	std::cout << it->value << " ";
+	// }
+	// std::cout << std::endl;
 	std::list<Number>::iterator right = rightIndexL(final, n.pair);
 	std::list<Number>::iterator mid;
 	std::list<Number>::iterator tmp;
+	// std::cout << "left value = " << left->value << " and right value = " << right->value << std::endl;
 	if (final->size() == 1)
 	{
 		if ((*final).front().value > n.value)
@@ -113,26 +119,48 @@ static void binaryInsertL(std::list<Number> *final, const Number& n){
 		else
 			final->push_back(n);
 	}
+	else if (n.value < (*final).front().value)
+	{
+		final->insert(final->begin(), n);
+	}
 	else
 	{
-		while (left->value != right->value && left->pair != right->pair) {
-			mid = left;
-			std::advance(mid, std::distance(left, right) / 2);
-			tmp = mid;
-			if (mid->value < n.value) {
+		// while (std::distance(final->begin(), left) <= std::distance(final->begin(), right)) //(left->value != right->value && left->pair != right->pair) && 
+		// {
+		// 	mid = left;
+		// 	std::advance(mid, std::distance(left, right) / 2);
+		// 	tmp = mid;
+		// 	if (mid->value < n.value) {
 				
-				std::advance(tmp, 1);
-				left = tmp;
-			} else {
-				std::advance(tmp, -1);
-				right = tmp;
-			}
-		}
-		std::list<Number>::iterator index = final->begin();
-		std::advance(index, std::distance(final->begin(), left));
-		if (n.value > index->value)
-			std::advance(index, 1);
-		final->insert(index, n);
+		// 		std::advance(tmp, 1);
+		// 		left = tmp;
+		// 	} else {
+		// 		std::advance(tmp, -1);
+		// 		right = tmp;
+		// 	}
+		// }
+		while (std::distance(final->begin(), left) <= std::distance(final->begin(), right)) {
+        mid = left;
+        advance(mid, std::distance(left, right) / 2);
+
+        if (mid->value == n.value) {
+            // Insérer après cet élément s'il y a des éléments avec la même valeur
+            ++mid;
+            final->insert(mid, n);
+            return;
+        } else if (mid->value < n.value) {
+            left = mid;
+            ++left;
+        } else {
+            right = mid;
+            --right;
+        }
+    }
+		// std::list<Number>::iterator index = final->begin();
+		// std::advance(index, std::distance(final->begin(), left));
+		// if (n.value > index->value)
+		// 	std::advance(index, 1);
+		final->insert(left, n);
 	}
 }
 
@@ -398,7 +426,6 @@ bool PmergeMe::lPart(char **argv){
 	final.push_back(n);
 	lSequence.pop_back();
 	
-	std::list<Number>::iterator next_it;
 	std::list<Number>::iterator it = lSequence.begin();
 	std::advance(it, 1);
 	int j = 1;
@@ -406,14 +433,15 @@ bool PmergeMe::lPart(char **argv){
 	{
 		if (j % 2 != 0)
 			binaryInsertL(&final, *it);
-		next_it = it;
-		++next_it;
-		if (next_it == lSequence.end())
+	
+		std::advance(it, 1);
+		if (it == lSequence.end())
 			break;
-		std::advance(it, 2);
+		std::advance(it, 1);
+		if (it == lSequence.end())
+			break;
 		j+= 2;
 	}
-
 	// Supprimer les elements qui ont ete push dans final 
 	std::list<Number>::iterator itl = lSequence.begin();
 	while (itl != lSequence.end()) 
